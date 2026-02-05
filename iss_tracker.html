@@ -47,13 +47,30 @@
       position: absolute;
       inset: 0;
       background: #0b111d;
+      overflow: hidden;
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
     }
 
-    .map-layer svg {
+    .map-layer.dragging {
+      cursor: grabbing;
+    }
+
+    .map-content {
+      position: absolute;
+      inset: 0;
+      transform-origin: 0 0;
+      will-change: transform;
+    }
+
+    .map-layer .map-svg {
       width: 100%;
       height: 100%;
       display: block;
       filter: saturate(1) brightness(1.05) contrast(1.05);
+      position: absolute;
+      inset: 0;
     }
 
     .map-glow {
@@ -63,6 +80,92 @@
         radial-gradient(900px 500px at 90% 10%, rgba(255, 204, 102, 0.16), transparent 70%),
         linear-gradient(180deg, rgba(3, 8, 18, 0.05), rgba(3, 8, 18, 0.45));
       pointer-events: none;
+      z-index: 1;
+    }
+
+    .orbit-layer {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .orbit-tooltip {
+      position: absolute;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(9, 12, 20, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: var(--ink);
+      font-family: "DM Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.82rem;
+      pointer-events: none;
+      opacity: 0;
+      transform: translate(-50%, -120%);
+      transition: opacity 0.2s ease;
+      z-index: 5;
+      white-space: nowrap;
+    }
+
+    .orbit-tooltip.visible {
+      opacity: 1;
+    }
+
+    .target-marker {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      display: grid;
+      place-items: center;
+      font-size: 22px;
+      filter: drop-shadow(0 0 10px rgba(255, 120, 120, 0.8));
+      transform: translate(-50%, -50%);
+      z-index: 3;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      pointer-events: none;
+    }
+
+    .target-marker.visible {
+      opacity: 1;
+    }
+
+    .target-label {
+      position: absolute;
+      transform: translate(10px, -18px);
+      background: rgba(9, 12, 20, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 12px;
+      padding: 8px 10px;
+      font-family: "DM Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.82rem;
+      color: var(--ink);
+      display: grid;
+      gap: 4px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      z-index: 4;
+      white-space: nowrap;
+    }
+
+    .target-label.visible {
+      opacity: 1;
+    }
+
+    .target-label .sub {
+      color: var(--muted);
+    }
+
+    .orbit-path {
+      fill: none;
+      stroke: rgba(112, 214, 255, 0.7);
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-dasharray: 6 8;
+      filter: drop-shadow(0 0 6px rgba(112, 214, 255, 0.45));
     }
 
     .iss-marker {
@@ -74,8 +177,9 @@
       font-size: 22px;
       transform: translate(-50%, -50%);
       transition: transform 0.6s ease, left 0.6s ease, top 0.6s ease;
-      z-index: 3;
+      z-index: 4;
       filter: drop-shadow(0 0 10px rgba(255, 206, 120, 0.8));
+      pointer-events: none;
     }
 
     .iss-pulse {
@@ -86,38 +190,37 @@
       border: 2px solid rgba(255, 204, 102, 0.6);
       transform: translate(-50%, -50%);
       animation: pulse 2.5s ease-in-out infinite;
-      z-index: 2;
+      z-index: 3;
+      pointer-events: none;
     }
 
     .header {
       position: absolute;
-      top: 28px;
-      left: 28px;
-      right: 28px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
+      top: 12px;
+      left: 0;
+      right: 0;
+      height: 70px;
       z-index: 4;
+      pointer-events: none;
     }
 
     .title-wrap {
+      position: absolute;
+      left: 50%;
+      top: 0;
+      transform: translateX(-50%);
       display: flex;
       flex-direction: column;
+      align-items: center;
       gap: 6px;
+      text-align: center;
+      pointer-events: none;
     }
 
     h1 {
       font-size: clamp(1.8rem, 3vw, 2.6rem);
       font-weight: 700;
       letter-spacing: -0.02em;
-    }
-
-    .subtitle {
-      color: var(--muted);
-      font-size: 0.95rem;
-      max-width: 460px;
-      line-height: 1.5;
     }
 
     .pill {
@@ -132,6 +235,10 @@
       align-items: center;
       gap: 6px;
       width: fit-content;
+      pointer-events: none;
+      position: absolute;
+      left: 28px;
+      top: 0;
     }
 
     .top-controls {
@@ -140,6 +247,11 @@
       gap: 10px;
       flex-wrap: wrap;
       justify-content: flex-end;
+      position: absolute;
+      top: 0;
+      right: 28px;
+      z-index: 6;
+      pointer-events: auto;
     }
 
     .status {
@@ -186,7 +298,7 @@
     .bottom-sheet {
       position: absolute;
       left: 50%;
-      transform: translateX(-50%);
+      transform: translate(-50%, 0);
       bottom: 26px;
       width: min(1100px, calc(100% - 32px));
       background: var(--panel);
@@ -198,6 +310,22 @@
       display: grid;
       gap: 16px;
       z-index: 5;
+      transition: transform 0.35s ease;
+    }
+
+    .bottom-sheet.collapsed {
+      transform: translate(-50%, calc(100% - 52px));
+      gap: 0;
+      padding: 10px 16px;
+    }
+
+    .sheet-top {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
     }
 
     .sheet-handle {
@@ -206,6 +334,41 @@
       border-radius: 999px;
       background: rgba(255, 255, 255, 0.3);
       margin: 0 auto;
+    }
+
+    .sheet-toggle {
+      position: static;
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--ink);
+      font-family: "DM Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    .sheet-toggle:hover {
+      transform: translateY(-1px);
+      background: rgba(255, 255, 255, 0.16);
+    }
+
+    .bottom-sheet.collapsed .sheet-grid,
+    .bottom-sheet.collapsed .footer {
+      opacity: 0;
+      max-height: 0;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .bottom-sheet.collapsed .sheet-handle {
+      opacity: 0;
+      height: 0;
+      margin: 0;
     }
 
     .sheet-grid {
@@ -289,6 +452,10 @@
         flex-direction: column;
         align-items: flex-start;
       }
+
+      .top-controls {
+        position: static;
+      }
     }
 
     @media (max-width: 640px) {
@@ -309,6 +476,7 @@
 <body>
   <div class="app">
     <div class="map-layer" id="mapFrame">
+      <div class="map-content" id="mapContent">
       <!--
 *************Map created by Simplemaps.com********************		
 *************Attribution is highly appreciated!***************
@@ -337,7 +505,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 -->
-<svg class="map-svg" baseprofile="tiny" fill="#ececec" height="857" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width=".2" version="1.2" viewBox="0 0 2000 857" width="2000" xmlns="http://www.w3.org/2000/svg">
+<svg class="map-svg" baseprofile="tiny" fill="#ececec" height="857" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width=".2" version="1.2" viewBox="0 0 2000 857" width="2000" xmlns="http://www.w3.org/2000/svg" id="mapSvg" preserveAspectRatio="xMidYMid meet">
  <path d="M1383 261.6l1.5 1.8-2.9 0.8-2.4 1.1-5.9 0.8-5.3 1.3-2.4 2.8 1.9 2.7 1.4 3.2-2 2.7 0.8 2.5-0.9 2.3-5.2-0.2 3.1 4.2-3.1 1.7-1.4 3.8 1.1 3.9-1.8 1.8-2.1-0.6-4 0.9-0.2 1.7-4.1 0-2.3 3.7 0.8 5.4-6.6 2.7-3.9-0.6-0.9 1.4-3.4-0.8-5.3 1-9.6-3.3 3.9-5.8-1.1-4.1-4.3-1.1-1.2-4.1-2.7-5.1 1.6-3.5-2.5-1 0.5-4.7 0.6-8 5.9 2.5 3.9-0.9 0.4-2.9 4-0.9 2.6-2-0.2-5.1 4.2-1.3 0.3-2.2 2.9 1.7 1.6 0.2 3 0 4.3 1.4 1.8 0.7 3.4-2 2.1 1.2 0.9-2.9 3.2 0.1 0.6-0.9-0.2-2.6 1.7-2.2 3.3 1.4-0.1 2 1.7 0.3 0.9 5.4 2.7 2.1 1.5-1.4 2.2-0.6 2.5-2.9 3.8 0.5 5.4 0z" id="AF" name="Afghanistan">
  </path>
  <path class="Angola" d="M 1121.2 572 1121.8 574 1121.1 577.1 1122 580.1 1121.1 582.5 1121.5 584.7 1109.8 584.6 1109 605.1 1112.6 610.3 1116.2 614.3 1105.8 616.9 1092.3 616 1088.5 613 1065.8 613.2 1065 613.7 1061.7 610.8 1058.1 610.6 1054.7 611.7 1052 612.9 1051.5 608.9 1052.4 603.2 1054.4 597.3 1054.7 594.6 1056.6 588.8 1058 586.2 1061.3 582 1063.2 579.1 1063.8 574.4 1063.5 570.7 1061.9 568.4 1060.4 564.5 1059.1 560.7 1059.4 559.3 1061.1 556.8 1059.5 550.6 1058.3 546.3 1055.5 542.2 1056.1 541 1058.4 540.1 1060.1 540.2 1062.1 539.5 1078.8 539.6 1080.1 544.3 1081.7 548.2 1083 550.3 1085.1 553.6 1088.9 553.1 1090.7 552.2 1093.8 553.1 1094.7 551.5 1096.2 547.8 1099.7 547.5 1100 546.4 1102.9 546.4 1102.4 548.7 1109.2 548.6 1109.3 552.7 1110.4 555.1 1109.5 559 1109.9 563 1111.7 565.4 1111.3 573 1112.7 572.4 1115.1 572.6 1118.6 571.6 1121.2 572 Z">
@@ -1285,16 +1453,24 @@ THE SOFTWARE.
  <circle cx="1798.2" cy="719.3" id="2">
  </circle>
 </svg>
+      <svg class="orbit-layer" id="orbitLayer" aria-hidden="true"></svg>
       <div class="iss-pulse" id="issPulse"></div>
       <div class="iss-marker" id="issMarker" role="img" aria-label="ISS position">🛰️</div>
+      <div class="target-marker" id="targetMarker" aria-hidden="true">📍</div>
+      <div class="target-label" id="targetLabel" aria-hidden="true">
+        <div id="targetLocation">Double-click the map</div>
+        <div class="sub" id="targetPass">Visible pass: --</div>
+        <div class="sub" id="targetPassPoint">Country overflight: --</div>
+      </div>
+      </div>
       <div class="map-glow"></div>
+      <div class="orbit-tooltip" id="orbitTooltip" aria-hidden="true"></div>
     </div>
 
     <header class="header">
+      <div class="pill">REAL-TIME ORBIT FEED</div>
       <div class="title-wrap">
-        <div class="pill">REAL-TIME ORBIT FEED</div>
-        <h1>ISS Live Tracker</h1>
-        <p class="subtitle">Watch the International Space Station streak over Earth in real time. Data refreshes every few seconds to keep the orbit lock tight.</p>
+        <h1>REAL-TIME ORBIT FEED</h1>
       </div>
       <div class="top-controls">
         <span id="status" class="status">Live Signal</span>
@@ -1302,8 +1478,11 @@ THE SOFTWARE.
       </div>
     </header>
 
-    <section class="bottom-sheet">
-      <div class="sheet-handle"></div>
+    <section class="bottom-sheet" id="bottomSheet">
+      <div class="sheet-top">
+        <button class="sheet-toggle" id="sheetToggle" type="button" aria-label="Collapse panel">v</button>
+        <div class="sheet-handle"></div>
+      </div>
       <div class="sheet-grid">
         <div class="card">
           <div class="label">Altitude</div>
@@ -1330,12 +1509,14 @@ THE SOFTWARE.
           <div class="meta" id="timestamp">--</div>
         </div>
       </div>
-      <div class="footer">Data source: Where The ISS At API. Map projection uses a simple equirectangular conversion; accuracy is approximate.</div>
+      
     </section>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/satellite.js@6.0.2/dist/satellite.min.js"></script>
   <script>
     const ISS_API = "https://api.wheretheiss.at/v1/satellites/25544";
+    const TLE_API = "https://celestrak.org/NORAD/elements/gp.php?CATNR=25544&FORMAT=TLE";
     const refreshBtn = document.getElementById("refreshBtn");
     const statusEl = document.getElementById("status");
     const altitudeEl = document.getElementById("altitude");
@@ -1343,11 +1524,53 @@ THE SOFTWARE.
     const latEl = document.getElementById("lat");
     const lonEl = document.getElementById("lon");
     const timestampEl = document.getElementById("timestamp");
+    const overflightPrimaryEl = document.getElementById("overflightPrimary");
+    const overflightDetailEl = document.getElementById("overflightDetail");
     const issMarker = document.getElementById("issMarker");
     const issPulse = document.getElementById("issPulse");
     const mapFrame = document.getElementById("mapFrame");
+    const mapContent = document.getElementById("mapContent");
+    const mapSvg = document.getElementById("mapSvg");
+    const orbitLayer = document.getElementById("orbitLayer");
+    const orbitTooltip = document.getElementById("orbitTooltip");
+    const bottomSheet = document.getElementById("bottomSheet");
+    const sheetToggle = document.getElementById("sheetToggle");
+    const targetMarker = document.getElementById("targetMarker");
+    const targetLocationEl = document.getElementById("targetLocation");
+    const targetPassEl = document.getElementById("targetPass");
+    const targetPassPointEl = document.getElementById("targetPassPoint");
+    const targetLabel = document.getElementById("targetLabel");
 
     let intervalId = null;
+    let orbitIntervalId = null;
+    let hoverRaf = null;
+    let lastGeocode = { lat: null, lon: null, time: 0 };
+    const GEOCODE_INTERVAL_MS = 30000;
+    const GEOCODE_DISTANCE_DEG = 0.6;
+    const ORBIT_MINUTES = 90;
+    const ORBIT_STEP_MIN = 2;
+    const ORBIT_REFRESH_MS = 60000;
+    const TLE_REFRESH_MS = 6 * 60 * 60 * 1000;
+    const N2YO_API_KEY = "S7HYZC-TN7D4R-87LWVJ-5NHS";
+    const N2YO_DAYS = 10;
+    const N2YO_MIN_ELEVATION = 18;
+    const N2YO_MIN_DURATION = 0;
+    let lastTleFetch = 0;
+    let satrec = null;
+    let lastOrbitPoints = [];
+    const COUNTRY_PASS_DAYS = 90;
+    const COUNTRY_PASS_STEP_MS = 60 * 1000;
+    const COUNTRY_PASS_REFINE_MS = 10 * 1000;
+    let targetSelection = null;
+    let isDragging = false;
+    const mapState = {
+      scale: 1.1,
+      translateX: 0,
+      translateY: 0,
+      minScale: 1,
+      maxScale: 2.5
+    };
+    let dragStart = { x: 0, y: 0, tx: 0, ty: 0 };
 
     function formatNumber(value, digits = 2) {
       if (value === null || value === undefined || Number.isNaN(value)) return "--";
@@ -1377,10 +1600,24 @@ THE SOFTWARE.
       }
     }
 
-    function toMapPosition(lat, lon) {
+    function getMapRenderBox() {
       const rect = mapFrame.getBoundingClientRect();
-      const x = ((lon + 180) / 360) * rect.width;
-      const y = ((90 - lat) / 180) * rect.height;
+      if (!mapSvg || !mapSvg.viewBox) {
+        return { x: 0, y: 0, width: rect.width, height: rect.height };
+      }
+      const viewBox = mapSvg.viewBox.baseVal;
+      const scale = Math.min(rect.width / viewBox.width, rect.height / viewBox.height);
+      const width = viewBox.width * scale;
+      const height = viewBox.height * scale;
+      const x = (rect.width - width) / 2;
+      const y = (rect.height - height) / 2;
+      return { x, y, width, height };
+    }
+
+    function toMapPosition(lat, lon) {
+      const box = getMapRenderBox();
+      const x = box.x + ((lon + 180) / 360) * box.width;
+      const y = box.y + ((90 - lat) / 180) * box.height;
       return { x, y };
     }
 
@@ -1390,6 +1627,543 @@ THE SOFTWARE.
       issMarker.style.top = `${y}px`;
       issPulse.style.left = `${x}px`;
       issPulse.style.top = `${y}px`;
+    }
+
+    function clampTranslate() {
+      const rect = mapFrame.getBoundingClientRect();
+      const mapW = rect.width * mapState.scale;
+      const mapH = rect.height * mapState.scale;
+      if (mapW <= rect.width) {
+        mapState.translateX = (rect.width - mapW) / 2;
+      } else {
+        const minX = rect.width - mapW;
+        mapState.translateX = Math.min(0, Math.max(minX, mapState.translateX));
+      }
+
+      if (mapH <= rect.height) {
+        mapState.translateY = (rect.height - mapH) / 2;
+      } else {
+        const minY = rect.height - mapH;
+        mapState.translateY = Math.min(0, Math.max(minY, mapState.translateY));
+      }
+    }
+
+    function applyTransform() {
+      if (!mapContent) return;
+      mapContent.style.transform = `translate(${mapState.translateX}px, ${mapState.translateY}px) scale(${mapState.scale})`;
+    }
+
+    function centerMap() {
+      const rect = mapFrame.getBoundingClientRect();
+      mapState.translateX = (rect.width - rect.width * mapState.scale) / 2;
+      mapState.translateY = (rect.height - rect.height * mapState.scale) / 2;
+      clampTranslate();
+      applyTransform();
+    }
+
+    function hideOrbitTooltip() {
+      if (!orbitTooltip) return;
+      orbitTooltip.classList.remove("visible");
+      orbitTooltip.textContent = "";
+    }
+
+    function formatUkTime(date) {
+      return new Date(date).toLocaleString("en-GB", {
+        timeZone: "Europe/London",
+        weekday: "short",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    }
+
+    function formatUkDateTime(date) {
+      return new Date(date).toLocaleString("en-GB", {
+        timeZone: "Europe/London",
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    }
+
+    function normalizeLon(lon) {
+      let normalized = ((lon + 180) % 360 + 360) % 360 - 180;
+      return normalized;
+    }
+
+    function clampLat(lat) {
+      return Math.max(-90, Math.min(90, lat));
+    }
+
+    function getSvgPointFromClient(clientX, clientY) {
+      if (!mapSvg || !mapSvg.createSVGPoint) return null;
+      const point = mapSvg.createSVGPoint();
+      point.x = clientX;
+      point.y = clientY;
+      const ctm = mapSvg.getScreenCTM();
+      if (!ctm) return null;
+      return point.matrixTransform(ctm.inverse());
+    }
+
+    function clientToLatLon(clientX, clientY) {
+      const rect = mapFrame.getBoundingClientRect();
+      const mouseX = clientX - rect.left;
+      const mouseY = clientY - rect.top;
+      const mapX = (mouseX - mapState.translateX) / mapState.scale;
+      const mapY = (mouseY - mapState.translateY) / mapState.scale;
+      const box = getMapRenderBox();
+      if (mapX < box.x || mapX > box.x + box.width || mapY < box.y || mapY > box.y + box.height) {
+        return null;
+      }
+      const lon = ((mapX - box.x) / box.width) * 360 - 180;
+      const lat = 90 - ((mapY - box.y) / box.height) * 180;
+      return { lat: clampLat(lat), lon: normalizeLon(lon) };
+    }
+
+    function latLonToSvgPoint(lat, lon) {
+      if (!mapSvg || !mapSvg.viewBox || !mapSvg.createSVGPoint) return null;
+      const viewBox = mapSvg.viewBox.baseVal;
+      const point = mapSvg.createSVGPoint();
+      point.x = ((lon + 180) / 360) * viewBox.width;
+      point.y = ((90 - lat) / 180) * viewBox.height;
+      return point;
+    }
+
+    function getCountrySelectionAtPoint(clientX, clientY) {
+      if (!mapSvg || !mapSvg.createSVGPoint) return null;
+      const svgPoint = getSvgPointFromClient(clientX, clientY);
+      if (!svgPoint) return null;
+      const candidates = mapSvg.querySelectorAll("path, polygon");
+      for (const el of candidates) {
+        if (typeof el.isPointInFill === "function" && el.isPointInFill(svgPoint)) {
+          const nameAttr = el.getAttribute("name");
+          const classAttr = (el.getAttribute("class") || "").trim();
+          const idAttr = el.getAttribute("id");
+          const key = nameAttr || classAttr || (idAttr && !["0", "1", "2", "mapSvg"].includes(idAttr) ? idAttr : null);
+          if (!key) return null;
+          const keyType = nameAttr ? "name" : classAttr ? "class" : "id";
+          const elements = Array.from(candidates).filter((node) => {
+            if (keyType === "name") return node.getAttribute("name") === key;
+            if (keyType === "class") return (node.getAttribute("class") || "").trim() === key;
+            return node.getAttribute("id") === key;
+          });
+          return { label: key, elements: elements.length ? elements : [el] };
+        }
+      }
+      return null;
+    }
+
+    function isLatLonOverCountry(lat, lon, elements) {
+      if (!elements || !elements.length) return false;
+      const point = latLonToSvgPoint(lat, lon);
+      if (!point) return false;
+      for (const el of elements) {
+        if (typeof el.isPointInFill === "function" && el.isPointInFill(point)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function isUsRegion(name) {
+      if (!name) return false;
+      const lower = name.toLowerCase();
+      return lower.includes("united states") || lower === "usa" || lower === "us";
+    }
+
+    function setTargetMarker(lat, lon) {
+      if (!targetMarker) return;
+      const { x, y } = toMapPosition(lat, lon);
+      targetMarker.style.left = `${x}px`;
+      targetMarker.style.top = `${y}px`;
+      targetMarker.classList.add("visible");
+      if (targetLabel) {
+        targetLabel.style.left = `${x}px`;
+        targetLabel.style.top = `${y}px`;
+        targetLabel.classList.add("visible");
+      }
+    }
+
+    function setTargetInfo(location, countryText, pointText) {
+      if (targetLocationEl) targetLocationEl.textContent = location;
+      if (targetPassEl) targetPassEl.textContent = countryText;
+      if (targetPassPointEl) targetPassPointEl.textContent = pointText;
+      if (targetLabel) targetLabel.classList.add("visible");
+    }
+
+    async function resolveUsState(lat, lon) {
+      try {
+        const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`;
+        const response = await fetch(url, { cache: "no-store" });
+        if (!response.ok) throw new Error("Geocode failed");
+        const data = await response.json();
+        return data.principalSubdivision || data.region || "";
+      } catch (error) {
+        return "";
+      }
+    }
+
+    async function findNextVisiblePass(lat, lon) {
+      if (!N2YO_API_KEY) return null;
+      try {
+        const url = `https://api.n2yo.com/rest/v1/satellite/visualpasses/25544/${lat.toFixed(4)}/${lon.toFixed(4)}/0/${N2YO_DAYS}/${N2YO_MIN_DURATION}/&apiKey=${N2YO_API_KEY}`;
+        const response = await fetch(url, { cache: "no-store" });
+        if (!response.ok) throw new Error("N2YO request failed");
+        const data = await response.json();
+        const passes = (data && data.passes) || [];
+        const pass = passes.find((item) => typeof item.maxEl === "number" && item.maxEl >= N2YO_MIN_ELEVATION) || passes[0];
+        if (!pass || !pass.startUTC) return null;
+        return new Date(pass.startUTC * 1000);
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function updateOrbitTooltip(mouseX, mouseY) {
+      if (!orbitTooltip || !lastOrbitPoints.length) {
+        hideOrbitTooltip();
+        return;
+      }
+
+      const mapX = (mouseX - mapState.translateX) / mapState.scale;
+      const mapY = (mouseY - mapState.translateY) / mapState.scale;
+      let nearest = null;
+      let nearestDist = Infinity;
+
+      for (const point of lastOrbitPoints) {
+        const pos = toMapPosition(point.lat, point.lon);
+        const dx = pos.x - mapX;
+        const dy = pos.y - mapY;
+        const dist = Math.hypot(dx, dy);
+        if (dist < nearestDist) {
+          nearestDist = dist;
+          nearest = { point, x: pos.x, y: pos.y };
+        }
+      }
+
+      const threshold = 18 / mapState.scale;
+      if (!nearest || nearestDist > threshold) {
+        hideOrbitTooltip();
+        return;
+      }
+
+      const screenX = nearest.x * mapState.scale + mapState.translateX;
+      const screenY = nearest.y * mapState.scale + mapState.translateY;
+      orbitTooltip.textContent = `UK Time: ${formatUkTime(nearest.point.time)}`;
+      orbitTooltip.style.left = `${screenX}px`;
+      orbitTooltip.style.top = `${screenY}px`;
+      orbitTooltip.classList.add("visible");
+    }
+
+    function resizeOrbitLayer() {
+      if (!orbitLayer) return;
+      const rect = mapFrame.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      orbitLayer.setAttribute("viewBox", `0 0 ${rect.width} ${rect.height}`);
+    }
+
+    function splitOrbitSegments(points) {
+      const segments = [];
+      let segment = [];
+      points.forEach((point) => {
+        if (segment.length) {
+          const prev = segment[segment.length - 1];
+          if (Math.abs(point.lon - prev.lon) > 180) {
+            segments.push(segment);
+            segment = [];
+          }
+        }
+        segment.push(point);
+      });
+      if (segment.length) segments.push(segment);
+      return segments;
+    }
+
+    function renderOrbit(points) {
+      if (!orbitLayer) return;
+      resizeOrbitLayer();
+      const segments = splitOrbitSegments(points);
+      const paths = segments.map((segment) => {
+        const d = segment
+          .map((point, index) => {
+            const { x, y } = toMapPosition(point.lat, point.lon);
+            return `${index === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`;
+          })
+          .join(" ");
+        return d;
+      }).filter((d) => d.split(" ").length > 4);
+
+      orbitLayer.innerHTML = paths.map((d) => `<path class="orbit-path" d="${d}"></path>`).join("");
+      lastOrbitPoints = points;
+    }
+
+    function parseTle(text) {
+      const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+      if (lines.length >= 3 && /^ISS/.test(lines[0])) {
+        return [lines[1], lines[2]];
+      }
+      if (lines.length >= 2) {
+        return [lines[lines.length - 2], lines[lines.length - 1]];
+      }
+      return null;
+    }
+
+    async function fetchTle() {
+      const response = await fetch(TLE_API, { cache: "no-store" });
+      if (!response.ok) throw new Error("TLE fetch failed");
+      const text = await response.text();
+      const tle = parseTle(text);
+      if (!tle) throw new Error("Invalid TLE");
+      satrec = satellite.twoline2satrec(tle[0], tle[1]);
+      lastTleFetch = Date.now();
+    }
+
+    function buildOrbitPoints() {
+      if (!satrec || !window.satellite) return [];
+      const now = new Date();
+      const points = [];
+      for (let minute = 0; minute <= ORBIT_MINUTES; minute += ORBIT_STEP_MIN) {
+        const timestamp = new Date(now.getTime() + minute * 60000);
+        const positionAndVelocity = satellite.propagate(satrec, timestamp);
+        if (!positionAndVelocity.position) continue;
+        const gmst = satellite.gstime(timestamp);
+        const geodetic = satellite.eciToGeodetic(positionAndVelocity.position, gmst);
+        const lat = satellite.degreesLat(geodetic.latitude);
+        const lon = satellite.degreesLong(geodetic.longitude);
+        points.push({ lat, lon, time: timestamp });
+      }
+      return points;
+    }
+
+    async function refreshOrbitPath() {
+      try {
+        if (!satrec || Date.now() - lastTleFetch > TLE_REFRESH_MS) {
+          await fetchTle();
+        }
+        const points = buildOrbitPoints();
+        if (points.length) renderOrbit(points);
+      } catch (error) {
+        // keep last path if refresh fails
+      }
+    }
+
+    function onPointerDown(event) {
+      if (event.button !== 0) return;
+      isDragging = true;
+      hideOrbitTooltip();
+      mapFrame.classList.add("dragging");
+      dragStart = {
+        x: event.clientX,
+        y: event.clientY,
+        tx: mapState.translateX,
+        ty: mapState.translateY
+      };
+      mapFrame.setPointerCapture(event.pointerId);
+    }
+
+    function onPointerMove(event) {
+      if (isDragging) {
+        const dx = event.clientX - dragStart.x;
+        const dy = event.clientY - dragStart.y;
+        mapState.translateX = dragStart.tx + dx;
+        mapState.translateY = dragStart.ty + dy;
+        clampTranslate();
+        applyTransform();
+        return;
+      }
+
+      const rect = mapFrame.getBoundingClientRect();
+      const mouseX = event.clientX - rect.left;
+      const mouseY = event.clientY - rect.top;
+      if (hoverRaf) cancelAnimationFrame(hoverRaf);
+      hoverRaf = requestAnimationFrame(() => updateOrbitTooltip(mouseX, mouseY));
+    }
+
+    function onPointerUp(event) {
+      if (!isDragging) return;
+      isDragging = false;
+      mapFrame.classList.remove("dragging");
+      mapFrame.releasePointerCapture(event.pointerId);
+    }
+
+    function onWheel(event) {
+      event.preventDefault();
+      const delta = Math.sign(event.deltaY);
+      const zoomFactor = delta > 0 ? 0.9 : 1.1;
+      const newScale = Math.min(mapState.maxScale, Math.max(mapState.minScale, mapState.scale * zoomFactor));
+      if (newScale === mapState.scale) return;
+
+      const rect = mapFrame.getBoundingClientRect();
+      const mouseX = event.clientX - rect.left;
+      const mouseY = event.clientY - rect.top;
+      const mapX = (mouseX - mapState.translateX) / mapState.scale;
+      const mapY = (mouseY - mapState.translateY) / mapState.scale;
+
+      mapState.scale = newScale;
+      mapState.translateX = mouseX - mapX * mapState.scale;
+      mapState.translateY = mouseY - mapY * mapState.scale;
+      clampTranslate();
+      applyTransform();
+      updateOrbitTooltip(mouseX, mouseY);
+    }
+
+    function setupMapInteractions() {
+      if (!mapFrame || !mapContent) return;
+      centerMap();
+      resizeOrbitLayer();
+      mapFrame.addEventListener("pointerdown", onPointerDown);
+      mapFrame.addEventListener("pointermove", onPointerMove);
+      mapFrame.addEventListener("pointerup", onPointerUp);
+      mapFrame.addEventListener("dblclick", (event) => {
+        event.preventDefault();
+        handleMapDoubleClick(event);
+      });
+      mapFrame.addEventListener("pointerleave", () => {
+        if (!isDragging) hideOrbitTooltip();
+      });
+      mapFrame.addEventListener("wheel", onWheel, { passive: false });
+    }
+
+    function toggleSheet() {
+      if (!bottomSheet || !sheetToggle) return;
+      const isCollapsed = bottomSheet.classList.toggle("collapsed");
+      sheetToggle.textContent = isCollapsed ? "^" : "v";
+      sheetToggle.setAttribute("aria-label", isCollapsed ? "Expand panel" : "Collapse panel");
+    }
+
+    function shouldGeocode(lat, lon) {
+      if (lastGeocode.time === 0 || lastGeocode.lat === null || lastGeocode.lon === null) return true;
+      const elapsed = Date.now() - lastGeocode.time;
+      const moved = Math.hypot(lat - lastGeocode.lat, lon - lastGeocode.lon);
+      return elapsed > GEOCODE_INTERVAL_MS || moved > GEOCODE_DISTANCE_DEG;
+    }
+
+    function setOverflight(primary, detail = "") {
+      overflightPrimaryEl.textContent = primary || "--";
+      overflightDetailEl.textContent = detail;
+    }
+
+    async function updateOverflight(lat, lon) {
+      if (!shouldGeocode(lat, lon)) return;
+      setOverflight("Locating...", "");
+      try {
+        const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`;
+        const response = await fetch(url, { cache: "no-store" });
+        if (!response.ok) throw new Error("Geocode failed");
+        const data = await response.json();
+
+        const city = data.city || data.locality;
+        const region = data.principalSubdivision || data.region;
+        const country = data.countryName;
+        const countryCode = data.countryCode || data.countryCodeAlpha2;
+        let primary = "Open Ocean";
+        let detail = "";
+
+        if (countryCode === "US") {
+          primary = region ? `USA - ${region}` : "USA";
+          detail = city || "";
+        } else if (country) {
+          primary = country;
+          detail = city || region || "";
+        } else if (region) {
+          primary = region;
+        } else if (city) {
+          primary = city;
+        }
+
+        setOverflight(primary, detail);
+        lastGeocode = { lat, lon, time: Date.now() };
+      } catch (error) {
+        setOverflight("Open Ocean", "Unable to resolve location");
+      }
+    }
+
+    async function findNextCountryPass(countryElements) {
+      if (!satrec || !window.satellite || !countryElements || !countryElements.length) return null;
+      const now = new Date();
+      const searchMs = COUNTRY_PASS_DAYS * 24 * 60 * 60 * 1000;
+      const steps = Math.floor(searchMs / COUNTRY_PASS_STEP_MS);
+      for (let i = 0; i <= steps; i += 1) {
+        const timestamp = new Date(now.getTime() + i * COUNTRY_PASS_STEP_MS);
+        const positionAndVelocity = satellite.propagate(satrec, timestamp);
+        if (!positionAndVelocity.position) continue;
+        const gmst = satellite.gstime(timestamp);
+        const geodetic = satellite.eciToGeodetic(positionAndVelocity.position, gmst);
+        const issLat = satellite.degreesLat(geodetic.latitude);
+        const issLon = satellite.degreesLong(geodetic.longitude);
+        if (isLatLonOverCountry(issLat, issLon, countryElements)) {
+          const refineStart = Math.max(0, i * COUNTRY_PASS_STEP_MS - COUNTRY_PASS_STEP_MS);
+          const refineEnd = i * COUNTRY_PASS_STEP_MS;
+          for (let fine = refineStart; fine <= refineEnd; fine += COUNTRY_PASS_REFINE_MS) {
+            const fineTime = new Date(now.getTime() + fine);
+            const finePos = satellite.propagate(satrec, fineTime);
+            if (!finePos.position) continue;
+            const fineGmst = satellite.gstime(fineTime);
+            const fineGeo = satellite.eciToGeodetic(finePos.position, fineGmst);
+            const fineLat = satellite.degreesLat(fineGeo.latitude);
+            const fineLon = satellite.degreesLong(fineGeo.longitude);
+            if (isLatLonOverCountry(fineLat, fineLon, countryElements)) {
+              return fineTime;
+            }
+          }
+          return timestamp;
+        }
+
+        if (i % 500 === 0) {
+          await new Promise((resolve) => requestAnimationFrame(resolve));
+        }
+      }
+      return null;
+    }
+
+    async function handleMapDoubleClick(event) {
+      const selection = getCountrySelectionAtPoint(event.clientX, event.clientY);
+      const coords = clientToLatLon(event.clientX, event.clientY);
+      if (!coords) return;
+      const { lat, lon } = coords;
+
+      targetSelection = { lat, lon, elements: selection ? selection.elements : null };
+      setTargetMarker(lat, lon);
+      setTargetInfo(
+        selection ? selection.label : "Open Ocean",
+        "Visible pass: calculating...",
+        "Country overflight: calculating..."
+      );
+
+      if (!satrec || Date.now() - lastTleFetch > TLE_REFRESH_MS) {
+        try {
+          await fetchTle();
+        } catch (error) {
+          // fall through with existing satrec if any
+        }
+      }
+
+      if (!selection || !selection.elements) {
+        setTargetInfo("Open Ocean", "Visible pass: --", "Country overflight: --");
+        return;
+      }
+
+      const [usState, countryPassTime, visiblePassTime] = await Promise.all([
+        isUsRegion(selection.label) ? resolveUsState(lat, lon) : "",
+        findNextCountryPass(selection.elements),
+        findNextVisiblePass(lat, lon)
+      ]);
+
+      let locationLabel = selection.label;
+      if (isUsRegion(selection.label)) {
+        locationLabel = usState ? `USA - ${usState}` : "USA";
+      }
+
+      const visibleText = visiblePassTime
+        ? `Visible pass: ${formatUkDateTime(visiblePassTime)}`
+        : N2YO_API_KEY
+          ? `Visible pass: none in next ${N2YO_DAYS} days`
+          : "Visible pass: add N2YO API key";
+      const countryText = countryPassTime
+        ? `Country overflight: ${formatUkDateTime(countryPassTime)}`
+        : `Country overflight: none in next ${COUNTRY_PASS_DAYS} days`;
+      setTargetInfo(locationLabel, visibleText, countryText);
     }
 
     async function fetchISSData() {
@@ -1405,6 +2179,7 @@ THE SOFTWARE.
         lonEl.textContent = `${formatNumber(data.longitude, 2)}°`;
         timestampEl.textContent = formatTimestamp(data.timestamp);
         placeMarker(data.latitude, data.longitude);
+        updateOverflight(data.latitude, data.longitude);
         setStatus(true);
       } catch (error) {
         setStatus(false);
@@ -1417,6 +2192,9 @@ THE SOFTWARE.
       fetchISSData();
       if (intervalId) clearInterval(intervalId);
       intervalId = setInterval(fetchISSData, 5000);
+      refreshOrbitPath();
+      if (orbitIntervalId) clearInterval(orbitIntervalId);
+      orbitIntervalId = setInterval(refreshOrbitPath, ORBIT_REFRESH_MS);
     }
 
     refreshBtn.addEventListener("click", fetchISSData);
@@ -1426,8 +2204,23 @@ THE SOFTWARE.
       if (!Number.isNaN(lat) && !Number.isNaN(lon)) {
         placeMarker(lat, lon);
       }
+      if (targetSelection) {
+        setTargetMarker(targetSelection.lat, targetSelection.lon);
+      }
+      if (lastOrbitPoints.length) {
+        renderOrbit(lastOrbitPoints);
+      } else {
+        resizeOrbitLayer();
+      }
+      clampTranslate();
+      applyTransform();
+      hideOrbitTooltip();
     });
 
+    if (sheetToggle) {
+      sheetToggle.addEventListener("click", toggleSheet);
+    }
+    setupMapInteractions();
     startLiveFeed();
   </script>
 </body>
